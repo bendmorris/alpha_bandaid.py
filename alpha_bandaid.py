@@ -1,6 +1,6 @@
 import pygame
 import sys
-
+from scipy import spatial
 
 
 def average_color(colors):
@@ -44,7 +44,10 @@ def main():
                 # this is a colored edge pixel; save it in the dictionary
                 colored[x,y] = image.get_at((x,y))
 
+    if not colored: return
+
     colored_pos = colored.keys()
+    tree = spatial.KDTree(colored_pos, leafsize=min(w*h/1000, 64))
 
     def closest_color(x, y):
         """Find the value of the closest opaque pixel to position (x, y)"""
@@ -55,17 +58,14 @@ def main():
         elif (x,y) in results: return results[x,y]
         elif image.get_at((x,y))[3] > 0: return image.get_at((x,y))
         else:
-            # sort colored pixels by distance
-            dist = [(xi, yi, abs(x-xi) + abs(y-yi)) for (xi,yi) in colored_pos]
-            dist.sort(key=lambda d: d[2])
-            min_dist = dist[0][2]
+            # find closest colored pixels
+            closest = tree.query([(x, y)], p=1)
+            min_dist = closest[0][0]
             colors = []
-
-            # find all pixels tied for minimum distance
-            for n in range(len(dist)):
-                if not dist[n][2] == min_dist:
-                    break
-                colors.append(colored[dist[n][0], dist[n][1]])
+            for distance, index in zip(closest[0], closest[1]):
+                if distance > min_dist: break
+                xi, yi = colored_pos[index]
+                colors.append(colored[xi, yi])
 
             # if there are multiple pixels tied for distance, average them
             results[x,y] = average_color(colors)
