@@ -34,7 +34,7 @@ def main():
     for x in xrange(w):
         for y in xrange(h):
             if image.get_at((x,y))[3] > 0:
-                # don't save this pixel if it isn't surrounded by opaque pixels
+                # don't save this pixel if it is surrounded by opaque pixels
                 if ((x == 0 or image.get_at((x-1, y))[3] > 0) and
                     (y == 0 or image.get_at((x, y-1))[3] > 0) and
                     (x == w-1 or image.get_at((x+1, y))[3] > 0) and
