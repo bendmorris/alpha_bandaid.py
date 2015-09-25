@@ -1,3 +1,4 @@
+import argparse
 import pygame
 import sys
 from scipy import spatial
@@ -10,17 +11,18 @@ def average_color(colors):
 
 
 def main():
-    if len(sys.argv) < 2:
-        print "Usage: python -m alpha_bandaid input_file (output_file)"
-        print "If no output file is specified, the input file will be edited in place"
-        sys.exit()
+    parser = argparse.ArgumentParser(description='alpha_bandaid')
+    parser.add_argument('input_file', help='file to clean')
+    parser.add_argument('output_file', nargs='?', default=None, help='output file path (none to edit in place)')
+    parser.add_argument('--alpha', '-a', type=int, default=0, help='alpha (0-255, default 0)')
 
-    input_file = sys.argv[1]
+    args = parser.parse_args()
 
-    if len(sys.argv) > 2:
-        output_file = sys.argv[2]
-    else:
-        output_file = input_file
+    input_file = args.input_file
+    output_file = args.output_file if args.output_file else input_file
+    alpha = args.alpha
+
+    print '%s -> %s' % (input_file, output_file)
 
     image = pygame.image.load(input_file)
     w = image.get_width()
@@ -44,7 +46,10 @@ def main():
                 # this is a colored edge pixel; save it in the dictionary
                 colored[x,y] = image.get_at((x,y))
 
-    if not colored: return
+    if not colored:
+        pygame.image.save(image, output_file)
+        print 'Done'
+        return
 
     colored_pos = colored.keys()
     tree = spatial.KDTree(colored_pos, leafsize=min(w*h/1000, 64))
@@ -76,12 +81,13 @@ def main():
             if image.get_at((x,y))[3] == 0:
                 # transparent pixel, fill with closest color
                 c = closest_color(x,y)
-                image.set_at((x, y), (c[0], c[1], c[2], 0))
+                image.set_at((x, y), (c[0], c[1], c[2], alpha))
         msg = '%s%% complete' % round((float(x + 1) / w) * 100, 1)
         sys.stdout.write(('%20s' % msg) + '\b'*20)
         sys.stdout.flush()
 
     pygame.image.save(image, output_file)
+    print '\nDone'
 
 
 if __name__ == '__main__':
